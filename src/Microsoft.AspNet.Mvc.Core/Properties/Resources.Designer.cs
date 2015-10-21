@@ -1050,6 +1050,22 @@ namespace Microsoft.AspNet.Mvc.Core
             return GetString("UrlNotLocal");
         }
 
+        /// <summary>
+        /// The default content type '{0}' must have an encoding.
+        /// </summary>
+        internal static string DefaultContentTypeEncoding
+        {
+            get { return GetString("DefaultContentTypeEncoding"); }
+        }
+
+        /// <summary>
+        /// The default content type '{0}' must have an encoding.
+        /// </summary>
+        internal static string FormatDefaultContentTypeEncoding(object p0)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("DefaultContentTypeEncoding"), p0);
+        }
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);
