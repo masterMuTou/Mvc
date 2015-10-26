@@ -31,13 +31,30 @@ namespace Microsoft.AspNet.Mvc.Internal.Routing
 
         public int ParameterCount { get {
                 var routeValues = _routeValues;
-                return Entry.Template.Parameters.Count(p => routeValues.ContainsKey(p.Name));
+                if((Entry?.Template?.Parameters) != null)
+                {
+                    return Entry.Template.Parameters.Count(p => routeValues.ContainsKey(p.Name));
+                }
+                else
+                {
+                    return 0;
+                }
             } }
 
-        public int DefaultParameters { get
+        public int DefaultParameters
+        {
+            get
             {
                 var routeValues = _routeValues;
-                return Entry.Defaults.Count(p => routeValues.ContainsKey(p.Key));
-            } }
+                if (Entry?.Defaults != null)
+                {
+                    return Entry.Defaults.Count(p => routeValues.ContainsKey(p.Key));
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+        }
     }
 }

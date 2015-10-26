@@ -141,7 +141,14 @@ namespace Microsoft.AspNet.Mvc.Internal.Routing
 
                 if(x.ParameterCount != y.ParameterCount)
                 {
-                    return y.ParameterCount.CompareTo(x.ParameterCount);
+                    if(x.Entry?.Template.Segments?.Count != y.Entry?.Template.Segments?.Count)
+                    {
+                        return y.ParameterCount.CompareTo(x.ParameterCount);
+                    }
+                    else
+                    {
+                        return x.ParameterCount.CompareTo(y.ParameterCount);
+                    }
                 }
 
                 if(x.DefaultParameters != y.DefaultParameters)
