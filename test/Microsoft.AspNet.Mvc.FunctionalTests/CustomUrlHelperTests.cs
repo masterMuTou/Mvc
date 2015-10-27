@@ -32,62 +32,6 @@ namespace Microsoft.AspNet.Mvc.FunctionalTests
         public HttpClient Client { get; }
 
         [Fact]
-        public async Task CustomUrlHelper_UseProvidedValues()
-        {
-            var idResult = await Client.GetAsync("/api/RouteValueUsage/urlHelper/helper/Base");
-          var baseResult = await Client.GetAsync("/api/RouteValueUsage/urlHelper/base/Base");
-
-            var idPath = await idResult.Content.ReadAsStringAsync();
-            var basePath = await baseResult.Content.ReadAsStringAsync();
-
-            // Assert
-            Assert.NotNull(idPath);
-            Assert.Equal("/api/routevalueusage/base/1234", idPath);
-
-            Assert.NotNull(basePath);
-            Assert.Equal("/api/routevalueusage/base", basePath);
-        }
-
-        [Fact]
-        public async Task CustomUrlHelper_UseDefaultValues()
-        {
-            // Arrange and Act
-            var idResult = await Client.GetAsync("/api/RouteValueUsage/urlHelper/helper/Default");
-            var baseResult = await Client.GetAsync("/api/RouteValueUsage/urlHelper/base/Default");
-
-            var idPath = await idResult.Content.ReadAsStringAsync();
-            var basePath = await baseResult.Content.ReadAsStringAsync();
-
-            // Assert
-            Assert.NotNull(idPath);
-            Assert.Equal("/api/routevalueusage/default/1234", idPath);
-
-            Assert.NotNull(basePath);
-            Assert.Equal("/api/routevalueusage/default", basePath);
-        }
-
-        private static IUrlHelper CreateUrlHelper(IServiceProvider services)
-        {
-            var actionContextAccessor = services.GetRequiredService<IActionContextAccessor>();
-            actionContextAccessor.ActionContext = new ActionContext();
-
-            return services.GetRequiredService<IUrlHelper>();
-        }
-
-        private static IServiceCollection GetServices()
-        {
-            var services = new ServiceCollection();
-            services.AddTransient<IUrlHelper, UrlHelper>();
-            services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
-            services.AddTransient<IActionSelector, DefaultActionSelector>();
-            services.AddSingleton<IActionDescriptorsCollectionProvider, DefaultActionDescriptorsCollectionProvider>();
-            services.AddSingleton<IActionSelectorDecisionTreeProvider, ActionSelectorDecisionTreeProvider>();
-            services.AddTransient<ILoggerFactory, LoggerFactory>();
-
-            return services;
-        }
-
-        [Fact]
         public async Task CustomUrlHelper_GeneratesUrlFromController()
         {
             // Arrange & Act

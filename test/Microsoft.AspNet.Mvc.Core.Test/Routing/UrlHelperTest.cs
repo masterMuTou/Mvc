@@ -3,17 +3,23 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Http.Internal;
 using Microsoft.AspNet.Mvc.Abstractions;
+using Microsoft.AspNet.Mvc.ApplicationModels;
+using Microsoft.AspNet.Mvc.Controllers;
 using Microsoft.AspNet.Mvc.Infrastructure;
 using Microsoft.AspNet.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.OptionsModel;
+using Microsoft.Extensions.PlatformAbstractions;
 using Moq;
 using Xunit;
 
@@ -851,6 +857,202 @@ namespace Microsoft.AspNet.Mvc.Routing
             Assert.Equal("/b/Store/Checkout", url);
         }
 
+        [Fact]
+        public void UrlAction_DefaultIgnoredForPrecidence()
+        {
+            // Arrange
+            var services = GetServicesFull();
+            var router = BuildRouterWithAttributeRoute(services);
+            var urlHelper = CreateUrlHelper("/", router, services);
+
+            // Act
+            var url = urlHelper.Action(
+                action: "Default",
+                controller: "matchVariable");
+
+            // Assert
+            Assert.Equal("/api/MatchVariable/default", url);
+        }
+
+        [Fact]
+        public void UrlAction_DefaultUsedWhenSupplied()
+        {
+            // Arrange
+            var services = GetServicesFull();
+            var router = BuildRouterWithAttributeRoute(services);
+            var urlHelper = CreateUrlHelper("/", router, services);
+
+            // Act
+            var url = urlHelper.Action(
+                action: "Default",
+                controller: "matchVariable",
+                values: new
+                {
+                    id = 1234
+                });
+
+            // Assert
+            Assert.Equal("/api/MatchVariable/default/1234", url);
+        }
+
+        [Fact]
+        public void UrlAction_MatchMostVariables()
+        {
+            // Arrange
+            var services = GetServicesFull();
+
+            var router = BuildRouterWithAttributeRoute(services);
+
+            var urlHelper = CreateUrlHelper("/", router, services);
+
+            // Act
+            var url = urlHelper.Action(
+                action: "Get",
+                controller: "MatchVariable",
+                values: new { id = 1234 });
+
+            // Assert
+            Assert.Equal("/api/MatchVariable/help/1234", url);
+        }
+
+        [Fact]
+        public void UrlAction_WithoutVariables()
+        {
+            // Arrange
+            var services = GetServicesFull();
+            var router = BuildRouterWithAttributeRoute(services);
+            var urlHelper = CreateUrlHelper("/", router, services);
+
+            // Act
+            var url = urlHelper.Action(
+                action: "Get",
+                controller: "MatchVariable");
+
+            // Assert
+            Assert.Equal("/api/MatchVariable/help", url);
+        }
+
+
+        private static IRouter BuildRouterWithAttributeRoute(IServiceProvider services)
+        {
+            var routeBuilder = new RouteBuilder
+            {
+                DefaultHandler = new MvcRouteHandler(),
+                ServiceProvider = services
+            };
+
+            routeBuilder.MapRoute("Default", "{controller}/{action}");
+
+            //Adding the attribute route as done in "UseMvc"
+            routeBuilder.Routes.Insert(0, AttributeRouting.CreateAttributeMegaRoute(
+                routeBuilder.DefaultHandler,
+                services));
+
+            return routeBuilder.Build();
+        }
+
+        private static IServiceProvider GetServicesFull()
+        {
+            var invoker = new Mock<IActionInvoker>();
+            invoker
+                .Setup(i => i.InvokeAsync())
+                .Returns(Task.FromResult(true));
+
+            var invokerFactory = new Mock<IActionInvokerFactory>();
+            invokerFactory
+                .Setup(f => f.CreateInvoker(It.IsAny<ActionContext>()))
+                .Returns<ActionContext>((c) =>
+                {
+                    return invoker.Object;
+                });
+
+            var optionsAccessor = new Mock<IOptions<RouteOptions>>();
+            optionsAccessor
+                .SetupGet(o => o.Value)
+                .Returns(new RouteOptions());
+
+            var actionContextAccessor = new ActionContextAccessor()
+            {
+                ActionContext = new ActionContext()
+                {
+                    HttpContext = new DefaultHttpContext()
+                    {
+                        ApplicationServices = GetServices(),
+                        RequestServices = GetServices(),
+                    },
+                    RouteData = new RouteData(),
+                },
+            };
+
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddMvc();
+
+            serviceCollection.AddInstance<ILibraryManager>(CreateLibraryManager());
+            serviceCollection.AddInstance<IActionInvokerFactory>(invokerFactory.Object);
+            serviceCollection.AddInstance<IActionContextAccessor>(actionContextAccessor);
+            serviceCollection.AddTransient<IActionSelector, DefaultActionSelector>();
+            serviceCollection.AddInstance<IInlineConstraintResolver>(
+                new DefaultInlineConstraintResolver(optionsAccessor.Object));
+            serviceCollection.AddInstance<IOptions<RouteOptions>>(optionsAccessor.Object);
+            serviceCollection.AddInstance<ILoggerFactory>(NullLoggerFactory.Instance);
+            serviceCollection.AddInstance<DiagnosticSource>(
+                new DiagnosticListener("Microsoft.AspNet")
+            );
+            serviceCollection.AddInstance<IActionDescriptorProvider>(GetActionDescriptorProvider());
+            serviceCollection.AddTransient<IActionDescriptorsCollectionProvider, DefaultActionDescriptorsCollectionProvider>();
+            serviceCollection.AddTransient<IActionSelectorDecisionTreeProvider, ActionSelectorDecisionTreeProvider>();
+
+            return serviceCollection.BuildServiceProvider();
+        }
+
+        [Route("api/[controller]")]
+        private class MatchVariableController : Controller
+        {
+            [HttpGet("default/{id=1234}")]
+            public void Default(int id = 1234)
+            { }
+
+            [HttpGet("default")]
+            public void Default()
+            { }
+
+            [HttpGet("help")]
+            public void Get()
+            { }
+
+            [HttpGet("help/{id}")]
+            public void Get(int id)
+            { }
+        }
+
+        private static ControllerActionDescriptorProvider GetActionDescriptorProvider()
+        {
+            //Get all the controllers in this class
+            var controllerTypes = typeof(UrlHelperTest)
+                .GetNestedTypes(BindingFlags.NonPublic)
+                .Where(t => t.BaseType == typeof(Controller))
+                .Select(t => t.GetTypeInfo())
+                .ToList();
+
+            var options = new TestOptionsManager<MvcOptions>();
+
+            var controllerTypeProvider = new StaticControllerTypeProvider(controllerTypes);
+            var modelProvider = new DefaultApplicationModelProvider(options);
+
+            var provider = new ControllerActionDescriptorProvider(
+                controllerTypeProvider,
+                new[] { modelProvider },
+                options);
+
+            return provider;
+        }
+
+        private static ILibraryManager CreateLibraryManager()
+        {
+            var manager = new Mock<ILibraryManager>();
+            return manager.Object;
+        }
+
         private static HttpContext CreateHttpContext(
             IServiceProvider services,
             string appRoot)
@@ -895,6 +1097,21 @@ namespace Microsoft.AspNet.Mvc.Routing
                 services.GetRequiredService<IActionContextAccessor>(),
                 actionSelector.Object);
         }
+        private static UrlHelper CreateUrlHelper(string appBase, IRouter router)
+        {
+            var services = GetServices();
+
+            return CreateUrlHelper(appBase, router, services);
+        }
+
+        private static UrlHelper CreateUrlHelper(string appBase, IRouter router, IServiceProvider services)
+        {
+            var context = CreateHttpContext(services, appBase);
+            var actionContext = CreateActionContext(context, router);
+
+            var actionSelector = new Mock<IActionSelector>(MockBehavior.Strict);
+            return new UrlHelper(actionContext, actionSelector.Object);
+        }
 
         private static UrlHelper CreateUrlHelper(string host)
         {
@@ -927,15 +1144,7 @@ namespace Microsoft.AspNet.Mvc.Routing
             return new UrlHelper(contextAccessor, actionSelector.Object);
         }
 
-        private static UrlHelper CreateUrlHelper(string appBase, IRouter router)
-        {
-            var services = GetServices();
-            var context = CreateHttpContext(services, appBase);
-            var actionContext = CreateActionContext(context, router);
-
-            var actionSelector = new Mock<IActionSelector>(MockBehavior.Strict);
-            return new UrlHelper(actionContext, actionSelector.Object);
-        }
+         
 
         private static UrlHelper CreateUrlHelperWithRouteCollection(IServiceProvider services, string appPrefix)
         {

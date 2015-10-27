@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.Mvc.Routing;
+using Microsoft.AspNet.Routing;
 
 namespace Microsoft.AspNet.Mvc.Internal.Routing
 {
@@ -11,49 +12,42 @@ namespace Microsoft.AspNet.Mvc.Internal.Routing
     {
         private readonly bool _isFallbackMatch;
         private readonly AttributeRouteLinkGenerationEntry _entry;
-        private readonly IDictionary<string, object> _routeValues;
 
         public LinkGenerationMatch(
             AttributeRouteLinkGenerationEntry entry,
             bool isFallbackMatch,
-            IDictionary<string, object> routeValues)
+            VirtualPathContext pathContext)
         {
             _entry = entry;
             _isFallbackMatch = isFallbackMatch;
-            _routeValues = routeValues;
+            RouteValues = pathContext.Values;
+            AmbientValues = pathContext.AmbientValues;
         }
 
         public AttributeRouteLinkGenerationEntry Entry { get { return _entry; } }
 
         public bool IsFallbackMatch { get { return _isFallbackMatch; } }
 
-        public IDictionary<string, object> RouteValues { get { return _routeValues; } }
+        public IDictionary<string, object> RouteValues { get; }
 
-        public int ParameterCount { get {
-                var routeValues = _routeValues;
-                if((Entry?.Template?.Parameters) != null)
-                {
-                    return Entry.Template.Parameters.Count(p => routeValues.ContainsKey(p.Name));
-                }
-                else
-                {
-                    return 0;
-                }
-            } }
+        public IDictionary<string, object> AmbientValues { get; }
+
+        public int ParametersWithValues
+        {
+            get
+            {
+                var t = this;
+                return Entry?.Template?.Parameters?.Count(p => (t.RouteValues.ContainsKey(p.Name) && t.RouteValues[p.Name] != p.DefaultValue) ||
+                    (t.AmbientValues.ContainsKey(p.Name) && t.AmbientValues[p.Name] != p.DefaultValue)) ?? 0;
+            }
+        }
 
         public int DefaultParameters
         {
             get
             {
-                var routeValues = _routeValues;
-                if (Entry?.Defaults != null)
-                {
-                    return Entry.Defaults.Count(p => routeValues.ContainsKey(p.Key));
-                }
-                else
-                {
-                    return 0;
-                }
+                var t = this;
+                return Entry?.Defaults?.Count(p => t.RouteValues.ContainsKey(p.Key)) ?? 0;
             }
         }
     }

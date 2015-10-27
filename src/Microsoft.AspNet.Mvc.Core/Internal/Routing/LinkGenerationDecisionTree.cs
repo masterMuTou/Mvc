@@ -3,11 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.AspNet.Mvc.Internal.DecisionTree;
 using Microsoft.AspNet.Mvc.Routing;
 using Microsoft.AspNet.Routing;
-using Microsoft.AspNet.Routing.Template;
 
 namespace Microsoft.AspNet.Mvc.Internal.Routing
 {
@@ -66,7 +64,7 @@ namespace Microsoft.AspNet.Mvc.Internal.Routing
             // to the results.
             for (var i = 0; i < node.Matches.Count; i++)
             {
-                results.Add(new LinkGenerationMatch(node.Matches[i], isFallbackPath, context.Values));
+                results.Add(new LinkGenerationMatch(node.Matches[i], isFallbackPath, context));
             }
 
             for (var i = 0; i < node.Criteria.Count; i++)
@@ -133,25 +131,27 @@ namespace Microsoft.AspNet.Mvc.Internal.Routing
 
             public int Compare(LinkGenerationMatch x, LinkGenerationMatch y)
             {
-                //For this comparison lower is better
+                // For this comparison lower is better.
                 if (x.Entry.Order != y.Entry.Order)
                 {
                     return x.Entry.Order.CompareTo(y.Entry.Order);
                 }
 
-                if(x.ParameterCount != y.ParameterCount)
+                if (x.ParametersWithValues != y.ParametersWithValues)
                 {
-                    if(x.Entry?.Template.Segments?.Count != y.Entry?.Template.Segments?.Count)
+                    //If one match has more variables but they have the same segments we want the non-variable one
+                    //e.g. for 'help/general' and 'help/{id}' we want to make sure help/general is the first option
+                    if (x.Entry?.Template.Segments?.Count != y.Entry?.Template.Segments?.Count)
                     {
-                        return y.ParameterCount.CompareTo(x.ParameterCount);
+                        return y.ParametersWithValues.CompareTo(x.ParametersWithValues);
                     }
                     else
                     {
-                        return x.ParameterCount.CompareTo(y.ParameterCount);
+                        return x.ParametersWithValues.CompareTo(y.ParametersWithValues);
                     }
                 }
 
-                if(x.DefaultParameters != y.DefaultParameters)
+                if (x.DefaultParameters != y.DefaultParameters)
                 {
                     return x.DefaultParameters.CompareTo(y.DefaultParameters);
                 }
