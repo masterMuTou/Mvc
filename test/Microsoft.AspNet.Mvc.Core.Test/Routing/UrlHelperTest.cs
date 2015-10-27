@@ -861,7 +861,7 @@ namespace Microsoft.AspNet.Mvc.Routing
         public void UrlAction_DefaultIgnoredForPrecidence()
         {
             // Arrange
-            var services = GetServicesFull();
+            var services = GetServices();
             var router = BuildRouterWithAttributeRoute(services);
             var urlHelper = CreateUrlHelper("/", router, services);
 
@@ -878,7 +878,7 @@ namespace Microsoft.AspNet.Mvc.Routing
         public void UrlAction_DefaultUsedWhenSupplied()
         {
             // Arrange
-            var services = GetServicesFull();
+            var services = GetServices();
             var router = BuildRouterWithAttributeRoute(services);
             var urlHelper = CreateUrlHelper("/", router, services);
 
@@ -899,7 +899,7 @@ namespace Microsoft.AspNet.Mvc.Routing
         public void UrlAction_MatchMostVariables()
         {
             // Arrange
-            var services = GetServicesFull();
+            var services = GetServices();
 
             var router = BuildRouterWithAttributeRoute(services);
 
@@ -919,7 +919,7 @@ namespace Microsoft.AspNet.Mvc.Routing
         public void UrlAction_WithoutVariables()
         {
             // Arrange
-            var services = GetServicesFull();
+            var services = GetServices();
             var router = BuildRouterWithAttributeRoute(services);
             var urlHelper = CreateUrlHelper("/", router, services);
 
@@ -931,7 +931,6 @@ namespace Microsoft.AspNet.Mvc.Routing
             // Assert
             Assert.Equal("/api/MatchVariable/help", url);
         }
-
 
         private static IRouter BuildRouterWithAttributeRoute(IServiceProvider services)
         {
@@ -951,7 +950,7 @@ namespace Microsoft.AspNet.Mvc.Routing
             return routeBuilder.Build();
         }
 
-        private static IServiceProvider GetServicesFull()
+        private static IServiceProvider GetServices()
         {
             var invoker = new Mock<IActionInvoker>();
             invoker
@@ -970,6 +969,15 @@ namespace Microsoft.AspNet.Mvc.Routing
             optionsAccessor
                 .SetupGet(o => o.Value)
                 .Returns(new RouteOptions());
+            var loggerFactory = NullLoggerFactory.Instance;
+
+            var serviceMock = new Mock<IServiceProvider>();
+            serviceMock
+                .Setup(s => s.GetService(typeof(IOptions<RouteOptions>)))
+                .Returns(optionsAccessor.Object);
+            serviceMock
+                .Setup(s => s.GetService(typeof(ILoggerFactory)))
+                .Returns(loggerFactory);
 
             var actionContextAccessor = new ActionContextAccessor()
             {
@@ -977,8 +985,8 @@ namespace Microsoft.AspNet.Mvc.Routing
                 {
                     HttpContext = new DefaultHttpContext()
                     {
-                        ApplicationServices = GetServices(),
-                        RequestServices = GetServices(),
+                        ApplicationServices = serviceMock.Object,
+                        RequestServices = serviceMock.Object,
                     },
                     RouteData = new RouteData(),
                 },
@@ -994,7 +1002,7 @@ namespace Microsoft.AspNet.Mvc.Routing
             serviceCollection.AddInstance<IInlineConstraintResolver>(
                 new DefaultInlineConstraintResolver(optionsAccessor.Object));
             serviceCollection.AddInstance<IOptions<RouteOptions>>(optionsAccessor.Object);
-            serviceCollection.AddInstance<ILoggerFactory>(NullLoggerFactory.Instance);
+            serviceCollection.AddInstance<ILoggerFactory>(loggerFactory);
             serviceCollection.AddInstance<DiagnosticSource>(
                 new DiagnosticListener("Microsoft.AspNet")
             );
@@ -1144,8 +1152,6 @@ namespace Microsoft.AspNet.Mvc.Routing
             return new UrlHelper(contextAccessor, actionSelector.Object);
         }
 
-         
-
         private static UrlHelper CreateUrlHelperWithRouteCollection(IServiceProvider services, string appPrefix)
         {
             var routeCollection = GetRouter(services);
@@ -1156,45 +1162,6 @@ namespace Microsoft.AspNet.Mvc.Routing
         {
             return GetRouter(services, "mockRoute", "/mockTemplate");
         }
-
-        private static IServiceProvider GetServices()
-        {
-            var services = new Mock<IServiceProvider>();
-
-            var optionsAccessor = new Mock<IOptions<RouteOptions>>();
-            optionsAccessor
-                .SetupGet(o => o.Value)
-                .Returns(new RouteOptions());
-            services
-                .Setup(s => s.GetService(typeof(IOptions<RouteOptions>)))
-                .Returns(optionsAccessor.Object);
-
-            services
-                .Setup(s => s.GetService(typeof(IInlineConstraintResolver)))
-                .Returns(new DefaultInlineConstraintResolver(optionsAccessor.Object));
-
-            services
-                .Setup(s => s.GetService(typeof(ILoggerFactory)))
-                .Returns(NullLoggerFactory.Instance);
-
-            services
-                .Setup(s => s.GetService(typeof(IActionContextAccessor)))
-                .Returns(new ActionContextAccessor()
-                {
-                    ActionContext = new ActionContext()
-                    {
-                        HttpContext = new DefaultHttpContext()
-                        {
-                            ApplicationServices = services.Object,
-                            RequestServices = services.Object,
-                        },
-                        RouteData = new RouteData(),
-                    },
-                });
-
-            return services.Object;
-        }
-
 
         private static IRouter GetRouter(
             IServiceProvider services,
