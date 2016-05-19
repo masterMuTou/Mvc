@@ -3,9 +3,9 @@
 
 using System.Threading.Tasks;
 using BasicWebSite.Models;
-using Microsoft.AspNet.Http;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.Controllers;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace BasicWebSite.Controllers
 {
@@ -45,7 +45,7 @@ namespace BasicWebSite.Controllers
 
         public IActionResult NoContentResult()
         {
-            return new HttpStatusCodeResult(StatusCodes.Status204NoContent);
+            return new StatusCodeResult(StatusCodes.Status204NoContent);
         }
 
         [AcceptVerbs("GET", "POST")]
@@ -83,11 +83,6 @@ namespace BasicWebSite.Controllers
             return View(person);
         }
 
-        public IActionResult JsonTextInView()
-        {
-            return View();
-        }
-
         public IActionResult ViewWithPrefixedAttributeValue()
         {
             return View();
@@ -95,8 +90,7 @@ namespace BasicWebSite.Controllers
 
         public string GetApplicationDescription()
         {
-            var actionDescriptor = (ControllerActionDescriptor)ActionContext.ActionDescriptor;
-            return actionDescriptor.Properties["description"].ToString();
+            return ControllerContext.ActionDescriptor.Properties["description"].ToString();
         }
     }
 }

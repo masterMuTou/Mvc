@@ -2,21 +2,27 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.Routing;
-using Microsoft.AspNet.Razor.TagHelpers;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.AspNetCore.Razor.TagHelpers;
 
 namespace TagHelpersWebSite.TagHelpers
 {
     public class ATagHelper : TagHelper
     {
-        public ATagHelper(IUrlHelper urlHelper)
+        public ATagHelper(IUrlHelperFactory urlHelperFactory)
         {
-            UrlHelper = urlHelper;
+            UrlHelperFactory = urlHelperFactory;
         }
 
         [HtmlAttributeNotBound]
-        public IUrlHelper UrlHelper { get; }
+        public IUrlHelperFactory UrlHelperFactory { get; }
+
+        [ViewContext]
+        [HtmlAttributeNotBound]
+        public ViewContext ViewContext { get; set; }
 
         public string Controller { get; set; }
 
@@ -33,7 +39,8 @@ namespace TagHelpersWebSite.TagHelpers
                 // be parameters to our final href value.
                 output.Attributes.Clear();
 
-                output.Attributes["href"] = UrlHelper.Action(Action, Controller, methodParameters);
+                var urlHelper = UrlHelperFactory.GetUrlHelper(ViewContext);
+                output.Attributes.SetAttribute("href", urlHelper.Action(Action, Controller, methodParameters));
 
                 output.PreContent.SetContent("My ");
             }

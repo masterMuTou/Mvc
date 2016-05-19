@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using Microsoft.AspNet.Mvc.ActionConstraints;
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
 
 namespace VersioningWebSite
 {
@@ -29,6 +29,8 @@ namespace VersioningWebSite
             get { return _order ?? -1; }
             set { _order = value; }
         }
+
+        public bool IsReusable => true;
 
         public IActionConstraint CreateInstance(IServiceProvider services)
         {

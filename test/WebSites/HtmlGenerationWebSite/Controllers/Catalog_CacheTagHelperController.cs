@@ -1,16 +1,15 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Collections.Generic;
 using System.Security.Claims;
-using Microsoft.AspNet.Mvc;
+using HtmlGenerationWebSite.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HtmlGenerationWebSite.Controllers
 {
     public class Catalog_CacheTagHelperController : Controller
     {
-        [FromServices]
-        public ProductsService ProductsService { get; set; }
-
         [HttpGet("/catalog")]
         public IActionResult Splash(int categoryId, int correlationId, [FromHeader] string locale)
         {
@@ -74,10 +73,14 @@ namespace HtmlGenerationWebSite.Controllers
             return View();
         }
 
-        [HttpPost("/categories/update-products")]
-        public void UpdateCategories()
+        [HttpPost("/categories/{category}")]
+        public IActionResult UpdateProducts(
+            [FromServices] ProductsService productService,
+            string category,
+            [FromBody] List<Product> products)
         {
-            ProductsService.UpdateProducts();
+            productService.UpdateProducts(category, products);
+            return Ok();
         }
 
         [HttpGet("/catalog/GetDealPercentage/{dealPercentage}")]

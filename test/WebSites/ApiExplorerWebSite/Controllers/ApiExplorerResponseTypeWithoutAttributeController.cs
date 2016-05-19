@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.AspNet.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ApiExplorerWebSite
 {
@@ -10,6 +10,7 @@ namespace ApiExplorerWebSite
     public class ApiExplorerResponseTypeWithoutAttributeController : Controller
     {
         [HttpGet]
+        [ProducesResponseType(typeof(void), 204)]
         public void GetVoid()
         {
         }
@@ -45,6 +46,7 @@ namespace ApiExplorerWebSite
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(void), 204)]
         public Task GetTask()
         {
             return Task.FromResult(true);

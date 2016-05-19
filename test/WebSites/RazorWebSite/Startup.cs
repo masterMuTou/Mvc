@@ -3,10 +3,11 @@
 
 using System.Collections.Generic;
 using System.Globalization;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Localization;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.Razor;
+using System.IO;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace RazorWebSite
@@ -19,12 +20,15 @@ namespace RazorWebSite
                 .AddMvc()
                 .AddRazorOptions(options =>
                 {
-                    options.ViewLocationExpanders.Add(new CustomPartialDirectoryViewLocationExpander());
+                    options.ViewLocationExpanders.Add(new NonMainPageViewLocationExpander());
+#if NET451
+                    options.ParseOptions = options.ParseOptions.WithPreprocessorSymbols("DNX451", "NET451_CUSTOM_DEFINE");
+#endif
                 })
                 .AddViewOptions(options =>
                 {
                     options.HtmlHelperOptions.ClientValidationEnabled = false;
-                    options.HtmlHelperOptions.Html5DateRenderingMode = Microsoft.AspNet.Mvc.Rendering.Html5DateRenderingMode.Rfc3339;
+                    options.HtmlHelperOptions.Html5DateRenderingMode = Microsoft.AspNetCore.Mvc.Rendering.Html5DateRenderingMode.Rfc3339;
                     options.HtmlHelperOptions.IdAttributeDotReplacement = "!";
                     options.HtmlHelperOptions.ValidationMessageElement = "validationMessageElement";
                     options.HtmlHelperOptions.ValidationSummaryMessageElement = "validationSummaryElement";
@@ -38,24 +42,37 @@ namespace RazorWebSite
 
         public void Configure(IApplicationBuilder app)
         {
-            var options = new RequestLocalizationOptions
+            app.UseRequestLocalization(new RequestLocalizationOptions
             {
+                DefaultRequestCulture = new RequestCulture("en-GB", "en-US"),
                 SupportedCultures = new List<CultureInfo>
                 {
                     new CultureInfo("fr"),
                     new CultureInfo("en-GB"),
-                    new CultureInfo("en-US")
+                    new CultureInfo("en-US"),
                 },
                 SupportedUICultures = new List<CultureInfo>
                 {
                     new CultureInfo("fr"),
                     new CultureInfo("en-GB"),
-                    new CultureInfo("en-US")
+                    new CultureInfo("en-US"),
                 }
-            };
-            app.UseRequestLocalization(options, new RequestCulture("en-GB", "en-US"));
+            });
 
             app.UseMvcWithDefaultRoute();
         }
+
+        public static void Main(string[] args)
+        {
+            var host = new WebHostBuilder()
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseStartup<Startup>()
+                .UseKestrel()
+                .UseIISIntegration()
+                .Build();
+
+            host.Run();
+        }
     }
 }
+

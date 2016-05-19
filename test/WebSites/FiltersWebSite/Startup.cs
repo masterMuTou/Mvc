@@ -1,10 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.IO;
 using System.Security.Claims;
-using Microsoft.AspNet.Authorization;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FiltersWebSite
@@ -58,12 +60,24 @@ namespace FiltersWebSite
         {
             app.UseCultureReplacer();
 
-            app.UseErrorReporter();
-
             app.UseMiddleware<AuthorizeBasicMiddleware>("Interactive");
             app.UseMiddleware<AuthorizeBasicMiddleware>("Api");
+            app.UseMiddleware<ErrorReporterMiddleware>();
 
             app.UseMvcWithDefaultRoute();
         }
+
+        public static void Main(string[] args)
+        {
+            var host = new WebHostBuilder()
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseStartup<Startup>()
+                .UseKestrel()
+                .UseIISIntegration()
+                .Build();
+
+            host.Run();
+        }
     }
 }
+

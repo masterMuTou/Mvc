@@ -1,8 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace ApplicationModelWebSite
 {
@@ -12,15 +12,13 @@ namespace ApplicationModelWebSite
     {
         public string GetControllerDescription()
         {
-            var actionDescriptor = (ControllerActionDescriptor)ActionContext.ActionDescriptor;
-            return actionDescriptor.Properties["description"].ToString();
+            return ControllerContext.ActionDescriptor.Properties["description"].ToString();
         }
 
         [ActionDescription("Specific Action Description")]
         public string GetActionSpecificDescription()
         {
-            var actionDescriptor = (ControllerActionDescriptor)ActionContext.ActionDescriptor;
-            return actionDescriptor.Properties["description"].ToString();
+            return ControllerContext.ActionDescriptor.Properties["description"].ToString();
         }
     }
 }

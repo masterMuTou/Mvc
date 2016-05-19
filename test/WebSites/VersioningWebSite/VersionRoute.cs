@@ -3,8 +3,8 @@
 
 using System;
 using System.Text.RegularExpressions;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.ActionConstraints;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
 
 namespace VersioningWebSite
 {
@@ -25,6 +25,8 @@ namespace VersioningWebSite
         // Parses the above version formats and captures lb (lower bound), range, and hb (higher bound)
         // We filter out (5), (5], [5) manually after we do the parsing.
         private static readonly Regex _versionParser = new Regex(@"^(?<lb>[\(\[])?(?<range>\d+(-\d+)?)(?<hb>[\)\]])?$");
+
+        public bool IsReusable => true;
 
         public VersionRoute(string template)
             : base(template)

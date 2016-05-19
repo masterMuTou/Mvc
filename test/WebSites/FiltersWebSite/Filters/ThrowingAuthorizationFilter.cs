@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using Microsoft.AspNet.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace FiltersWebSite
 {
-    public class ThrowingAuthorizationFilter : AuthorizationFilterAttribute
+    public class ThrowingAuthorizationFilter : Attribute, IAuthorizationFilter
     {
-        public override void OnAuthorization(AuthorizationContext context)
+        public void OnAuthorization(AuthorizationFilterContext context)
         {
             throw new InvalidProgramException("Authorization Filter Threw");
         }

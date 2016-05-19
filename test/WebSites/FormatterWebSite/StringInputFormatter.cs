@@ -1,16 +1,16 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.Formatters;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Net.Http.Headers;
 
 namespace FormatterWebSite
 {
-    public class StringInputFormatter : InputFormatter
+    public class StringInputFormatter : TextInputFormatter
     {
         public StringInputFormatter()
         {
@@ -20,14 +20,8 @@ namespace FormatterWebSite
             SupportedEncodings.Add(Encoding.Unicode);
         }
 
-        public override Task<InputFormatterResult> ReadRequestBodyAsync(InputFormatterContext context)
+        public override Task<InputFormatterResult> ReadRequestBodyAsync(InputFormatterContext context, Encoding effectiveEncoding)
         {
-            var effectiveEncoding = SelectCharacterEncoding(context);
-            if (effectiveEncoding == null)
-            {
-                return InputFormatterResult.FailureAsync();
-            }
-
             var request = context.HttpContext.Request;
             using (var reader = new StreamReader(request.Body, effectiveEncoding))
             {

@@ -6,18 +6,15 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
-using Microsoft.AspNet.Http;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.WebApiCompatShim;
-using Microsoft.Extensions.OptionsModel;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
+using Microsoft.Extensions.Options;
 
 namespace WebApiCompatShimWebSite
 {
     public class BasicApiController : ApiController
     {
-        [FromServices]
-        public IOptions<WebApiCompatShimOptions> OptionsAccessor { get; set; }
-
         // Verifies property activation
         [HttpGet]
         public async Task<IActionResult> WriteToHttpContext()
@@ -43,9 +40,9 @@ namespace WebApiCompatShimWebSite
 
         // Verifies the default options configure formatters correctly.
         [HttpGet]
-        public string[] GetFormatters()
+        public string[] GetFormatters([FromServices] IOptions<WebApiCompatShimOptions> optionsAccessor)
         {
-            return OptionsAccessor.Value.Formatters.Select(f => f.GetType().FullName).ToArray();
+            return optionsAccessor.Value.Formatters.Select(f => f.GetType().FullName).ToArray();
         }
 
         [HttpGet]
@@ -86,8 +83,9 @@ namespace WebApiCompatShimWebSite
                 var error = item.Value.Errors.SingleOrDefault();
                 if (error != null)
                 {
-                    var value = error.Exception != null ? error.Exception.Message :
-                                                          error.ErrorMessage;
+                    var value = error.Exception != null ?
+                        error.Exception.Message :
+                        error.ErrorMessage;
                     result.Add(item.Key, value);
                 }
             }

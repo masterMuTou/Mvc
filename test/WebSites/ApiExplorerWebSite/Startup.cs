@@ -1,10 +1,13 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.Formatters;
+using System.IO;
+using System.Linq;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ApiExplorerWebSite
 {
@@ -13,6 +16,7 @@ namespace ApiExplorerWebSite
         // Set up application services
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddTransient<ILoggerFactory, LoggerFactory>();
             services.AddMvc(options =>
             {
                 options.Filters.AddService(typeof(ApiExplorerDataFilter));
@@ -21,8 +25,10 @@ namespace ApiExplorerWebSite
                 options.Conventions.Add(new ApiExplorerVisibilityDisabledConvention(
                     typeof(ApiExplorerVisbilityDisabledByConventionController)));
 
+                var jsonOutputFormatter = options.OutputFormatters.OfType<JsonOutputFormatter>().First();
+
                 options.OutputFormatters.Clear();
-                options.OutputFormatters.Add(new JsonOutputFormatter());
+                options.OutputFormatters.Add(jsonOutputFormatter);
                 options.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());
             });
 
@@ -39,5 +45,18 @@ namespace ApiExplorerWebSite
                 routes.MapRoute("default", "{controller}/{action}");
             });
         }
+
+        public static void Main(string[] args)
+        {
+            var host = new WebHostBuilder()
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseKestrel()
+                .UseIISIntegration()
+                .UseStartup<Startup>()
+                .Build();
+
+            host.Run();
+        }
     }
 }
+

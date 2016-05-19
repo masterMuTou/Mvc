@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
-using Microsoft.AspNet.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace RazorWebSite.Controllers
 {
@@ -15,7 +15,12 @@ namespace RazorWebSite.Controllers
 
         public IActionResult ViewWithFullPath()
         {
-            return View(@"/Views/ViewEngine/ViewWithFullPath.cshtml");
+            return View("/Views/ViewEngine/ViewWithFullPath.rzr");
+        }
+
+        public IActionResult ViewWithRelativePath()
+        {
+            return View("Views/ViewEngine/ViewWithRelativePath.cshtml");
         }
 
         public IActionResult ViewWithLayout()
@@ -35,6 +40,7 @@ namespace RazorWebSite.Controllers
             {
                 Address = new Address { ZipCode = "98052" }
             };
+
             return View(model);
         }
 

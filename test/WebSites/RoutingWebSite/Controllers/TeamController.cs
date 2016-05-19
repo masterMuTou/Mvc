@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using Microsoft.AspNet.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace RoutingWebSite
 {
@@ -63,8 +63,8 @@ namespace RoutingWebSite
             return Content(Url.Action(), "text/plain");
         }
 
-        [HttpGet("/TeamName/{*Name}/")]
-        public ActionResult GetTeam(string name = "DefaultName")
+        [HttpGet("/TeamName/{*Name=DefaultName}/")]
+        public ActionResult GetTeam(string name)
         {
             return _generator.Generate("/TeamName/" + name);
         }

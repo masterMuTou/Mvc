@@ -1,17 +1,22 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
+using System.Reflection;
 using System.Security.Claims;
-using Microsoft.AspNet.Http;
-using Microsoft.AspNet.Mvc.Filters;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace FiltersWebSite
 {
-    public class AuthorizeUserAttribute : AuthorizationFilterAttribute
+    public class AuthorizeUserAttribute : Attribute, IAuthorizationFilter
     {
-        public override void OnAuthorization(AuthorizationContext context)
+        public virtual void OnAuthorization(AuthorizationFilterContext context)
         {
-            if (context.ActionDescriptor.DisplayName == "FiltersWebSite.ProductsController.GetPrice")
+            var controllerActionDescriptor = (ControllerActionDescriptor)context.ActionDescriptor;
+            if (controllerActionDescriptor.MethodInfo ==
+                typeof(ProductsController).GetMethod(nameof(ProductsController.GetPrice)))
             {
                 context.HttpContext.Response.Headers.Append("filters",
                     "Authorize Filter On Action - OnAuthorization");

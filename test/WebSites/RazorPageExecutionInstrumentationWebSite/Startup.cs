@@ -1,15 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Http;
-using Microsoft.AspNet.Http.Features;
-using Microsoft.AspNet.Mvc.Razor.Compilation;
-using Microsoft.AspNet.PageExecutionInstrumentation;
+using System.Diagnostics;
+using System.IO;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Razor.Compilation;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace RazorPageExecutionInstrumentationWebSite
 {
@@ -19,30 +16,45 @@ namespace RazorPageExecutionInstrumentationWebSite
         public void ConfigureServices(IServiceCollection services)
         {
             // Normalize line endings to avoid changes in instrumentation locations between systems.
-            services.TryAdd(ServiceDescriptor.Transient<IRazorCompilationService, TestRazorCompilationService>());
+            services.AddTransient<IRazorCompilationService, TestRazorCompilationService>();
 
-            // Add MVC services to the services container
+            // Add MVC services to the services container.
             services.AddMvc();
         }
 
         public void Configure(IApplicationBuilder app)
         {
+            var listener = new RazorPageDiagnosticListener();
+            var diagnosticSource = app.ApplicationServices.GetRequiredService<DiagnosticListener>();
+            diagnosticSource.SubscribeWithAdapter(listener);
+
             app.UseCultureReplacer();
 
-            app.Use(async (HttpContext context, Func<Task> next) =>
+            app.Use(async (context, next) =>
             {
-                if (!string.IsNullOrEmpty(context.Request.Headers["ENABLE-RAZOR-INSTRUMENTATION"]))
+                using (var writer = new StreamWriter(context.Response.Body))
                 {
-                    var pageExecutionContext = context.ApplicationServices.GetRequiredService<TestPageExecutionContext>();
-                    var listenerFeature = new TestPageExecutionListenerFeature(pageExecutionContext);
-                    context.Features.Set<IPageExecutionListenerFeature>(listenerFeature);
+                    context.Items[RazorPageDiagnosticListener.WriterKey] = writer;
+                    context.Response.Body = Stream.Null;
+                    await next();
                 }
-
-                await next();
             });
 
             // Add MVC to the request pipeline
             app.UseMvcWithDefaultRoute();
         }
+
+        public static void Main(string[] args)
+        {
+            var host = new WebHostBuilder()
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseStartup<Startup>()
+                .UseKestrel()
+                .UseIISIntegration()
+                .Build();
+
+            host.Run();
+        }
     }
 }
+
